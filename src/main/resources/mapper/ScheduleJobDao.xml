@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.demo.module.dao.ScheduleJobDao">
+
+	<!-- 可根据自己的需求，是否要使用 -->
+    <resultMap type="com.example.demo.module.model.ScheduleJobEntity" id="scheduleJobMap">
+        <result property="id" column="id"/>
+        <result property="jobName" column="job_name"/>
+        <result property="cronExpression" column="cron_expression"/>
+        <result property="status" column="status"/>
+        <result property="remark" column="remark"/>
+        <result property="createTime" column="create_time"/>
+        <result property="sortId" column="sort_id"/>
+        <result property="bodyUrl" column="body_url"/>
+        <result property="httpType" column="http_type"/>
+        <result property="body" column="body"/>
+        <result property="delFlag" column="del_flag"/>
+    </resultMap>
+
+	<select id="queryObject" resultType="com.example.demo.module.model.ScheduleJobEntity">
+		select * from schedule_job where id = #{value}
+	</select>
+
+	<select id="queryList" resultType="com.example.demo.module.model.ScheduleJobEntity">
+		select * from schedule_job
+        <choose>
+            <when test="sidx != null and sidx.trim() != ''">
+                order by ${sidx} ${order}
+            </when>
+			<otherwise>
+                order by id desc
+			</otherwise>
+        </choose>
+		<if test="offset != null and limit != null">
+			limit #{offset}, #{limit}
+		</if>
+	</select>
+	
+ 	<select id="queryTotal" resultType="int">
+		select count(*) from schedule_job 
+	</select>
+	 
+	<insert id="save" parameterType="com.example.demo.module.model.ScheduleJobEntity" useGeneratedKeys="true" keyProperty="id">
+		insert into schedule_job
+		(
+			`job_name`, 
+			`cron_expression`, 
+			`status`, 
+			`remark`, 
+			`create_time`, 
+			`sort_id`, 
+			`body_url`, 
+			`http_type`, 
+			`body`, 
+			`del_flag`
+		)
+		values
+		(
+			#{jobName}, 
+			#{cronExpression}, 
+			#{status}, 
+			#{remark}, 
+			#{createTime}, 
+			#{sortId}, 
+			#{bodyUrl}, 
+			#{httpType}, 
+			#{body}, 
+			#{delFlag}
+		)
+	</insert>
+	 
+	<update id="update" parameterType="com.example.demo.module.model.ScheduleJobEntity">
+		update schedule_job 
+		<set>
+			<if test="jobName != null">`job_name` = #{jobName}, </if>
+			<if test="cronExpression != null">`cron_expression` = #{cronExpression}, </if>
+			<if test="status != null">`status` = #{status}, </if>
+			<if test="remark != null">`remark` = #{remark}, </if>
+			<if test="createTime != null">`create_time` = #{createTime}, </if>
+			<if test="sortId != null">`sort_id` = #{sortId}, </if>
+			<if test="bodyUrl != null">`body_url` = #{bodyUrl}, </if>
+			<if test="httpType != null">`http_type` = #{httpType}, </if>
+			<if test="body != null">`body` = #{body}, </if>
+			<if test="delFlag != null">`del_flag` = #{delFlag}</if>
+		</set>
+		where id = #{id}
+	</update>
+	
+	<delete id="delete">
+		delete from schedule_job where id = #{value}
+	</delete>
+	
+	<delete id="deleteBatch">
+		delete from schedule_job where id in 
+		<foreach item="id" collection="array" open="(" separator="," close=")">
+			#{id}
+		</foreach>
+	</delete>
+
+</mapper>
