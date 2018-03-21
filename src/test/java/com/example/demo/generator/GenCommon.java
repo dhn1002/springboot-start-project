@@ -1,6 +1,8 @@
 package com.example.demo.generator;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static com.example.demo.generator.GenConfig.*;
@@ -78,6 +80,16 @@ public class GenCommon {
 
         public String genPath(String tableName){
             return placePath + CodeGenerator.nameToJava(tableName) + fileName;
+        }
+
+        public static String[] allGenPath(String tableName){
+            List<String> list = new ArrayList<>();
+            for (EnumGenPath genPath : EnumGenPath.values()){
+                list.add(genPath.genPath(tableName));
+            }
+            String[] paths = new String[list.size()];
+            list.toArray(paths);
+            return paths;
         }
     }
 }

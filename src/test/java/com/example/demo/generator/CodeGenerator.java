@@ -12,6 +12,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.example.demo.generator.GenCommon.EnumGenPath;
+
 /**
  * 代码生成器，根据数据表名称生成对应的Model、Mapper、Service、Controller简化开发。
  */
@@ -28,26 +30,32 @@ public class CodeGenerator {
         sqlSessionFactory = new SqlSessionFactoryBuilder().build(inputStream);
     }
 
-    public static void main(String[] args) {
-        genCode("sys_log");
-    }
-
     /**
      * 通过数据表名称生成代码，Model 名称通过解析数据表名称获得，下划线转大驼峰的形式。
      * 如输入表名称 "t_user_detail" 将生成 TUserDetail、TUserDetailMapper、TUserDetailService ...
+     *
      * @param tableNames 数据表名称...
      */
     public static void genCode(String... tableNames) {
         for (String tableName : tableNames) {
-
             Map<String, Object> dataMap = getDataMap(tableName);
 
-            generator(dataMap, GenCommon.EnumGenPath.ENTITY.templatePath(), GenCommon.EnumGenPath.ENTITY.genPath(tableName));
-            generator(dataMap, GenCommon.EnumGenPath.DAO.templatePath(), GenCommon.EnumGenPath.DAO.genPath(tableName));
-            generator(dataMap, GenCommon.EnumGenPath.MAPPER.templatePath(), GenCommon.EnumGenPath.MAPPER.genPath(tableName));
-            generator(dataMap, GenCommon.EnumGenPath.SERVICE.templatePath(), GenCommon.EnumGenPath.SERVICE.genPath(tableName));
-            generator(dataMap, GenCommon.EnumGenPath.SERVICEIMPL.templatePath(), GenCommon.EnumGenPath.SERVICEIMPL.genPath(tableName));
-            generator(dataMap, GenCommon.EnumGenPath.CONTROLLER.templatePath(), GenCommon.EnumGenPath.CONTROLLER.genPath(tableName));
+            generator(dataMap, EnumGenPath.ENTITY.templatePath(), EnumGenPath.ENTITY.genPath(tableName));
+            generator(dataMap, EnumGenPath.DAO.templatePath(), EnumGenPath.DAO.genPath(tableName));
+            generator(dataMap, EnumGenPath.MAPPER.templatePath(), EnumGenPath.MAPPER.genPath(tableName));
+            generator(dataMap, EnumGenPath.SERVICE.templatePath(), EnumGenPath.SERVICE.genPath(tableName));
+            generator(dataMap, EnumGenPath.SERVICEIMPL.templatePath(), EnumGenPath.SERVICEIMPL.genPath(tableName));
+            generator(dataMap, EnumGenPath.CONTROLLER.templatePath(), EnumGenPath.CONTROLLER.genPath(tableName));
+        }
+    }
+
+    /**
+     * 删除生成的文件，不包括文件夹
+     * @param tableNames
+     */
+    public static void deleteGenFile(String... tableNames) {
+        for (String tableName : tableNames) {
+            deleteFile(EnumGenPath.allGenPath(tableName));
         }
     }
 
@@ -58,10 +66,11 @@ public class CodeGenerator {
 
     /**
      * 模板数据：
+     *
      * @param tableName
      * @return
      */
-    private static Map<String,Object> getDataMap(String tableName) {
+    private static Map<String, Object> getDataMap(String tableName) {
         Map<String, Object> dataMap = new HashMap<>();
         //表信息
         Map<String, String> table = queryTable(tableName);
@@ -73,12 +82,15 @@ public class CodeGenerator {
         List<Map<String, String>> columns = queryColumns(tableName);
         for (Map<String, String> column : columns) {
             String attrName = nameToJava(column.get("columnName"));
-            column.put("attrName",attrName);
-            column.put("attrname",StringUtils.uncapitalize(attrName));
-            column.put("attrType",dataTypeConvertToAttrType(column.get("dataType")));
-            if("PRI".equalsIgnoreCase(column.get("columnKey"))){
-                dataMap.put("pk",column);
+            column.put("attrName", attrName);
+            column.put("attrname", StringUtils.uncapitalize(attrName));
+            column.put("attrType", dataTypeConvertToAttrType(column.get("dataType")));
+            if ("PRI".equalsIgnoreCase(column.get("columnKey"))) {
+                dataMap.put("pk", column);
             }
+        }
+        if (dataMap.get("pk") == null) {
+            dataMap.put("pk", columns.get(0));
         }
 
         //其它信息
@@ -86,33 +98,39 @@ public class CodeGenerator {
         dataMap.put("author", GenConfig.AUTHOR);
         dataMap.put("datetime", GenConfig.DATE);
 
-        for (Map.Entry<String, String> entry : table.entrySet()){
+        for (Map.Entry<String, String> entry : table.entrySet()) {
             dataMap.put(entry.getKey(), entry.getValue());
         }
 //        dataMap.put("table",table);
-        dataMap.put("columns",columns);
+        dataMap.put("columns", columns);
 
         return dataMap;
     }
 
-    private static List<Map<String,String>> queryColumns(String tableName) {
+    private static List<Map<String, String>> queryColumns(String tableName) {
         SqlSession session = sqlSessionFactory.openSession();
-        SysGeneratorDao dao = session.getMapper(SysGeneratorDao.class);
-        List<Map<String,String>> list = dao.queryColumns(tableName);
-        session.close();
-        return list;
+        try {
+            SysGeneratorDao dao = session.getMapper(SysGeneratorDao.class);
+            List<Map<String, String>> list = dao.queryColumns(tableName);
+            return list;
+        } finally {
+            session.close();
+        }
     }
 
-    private static Map<String,String> queryTable(String tableName) {
+    private static Map<String, String> queryTable(String tableName) {
         SqlSession session = sqlSessionFactory.openSession();
-        SysGeneratorDao dao = session.getMapper(SysGeneratorDao.class);
-        Map<String,String> map = dao.queryTable(tableName);
-        session.close();
-        return map;
+        try {
+            SysGeneratorDao dao = session.getMapper(SysGeneratorDao.class);
+            Map<String, String> map = dao.queryTable(tableName);
+            return map;
+        } finally {
+            session.close();
+        }
     }
 
     private static String dataTypeConvertToAttrType(String dataType) {
-        if (GenCommon.ATTR_JAVA_MAP.get(dataType) == null){
+        if (GenCommon.ATTR_JAVA_MAP.get(dataType) == null) {
             return "unknowType";
         }
         return GenCommon.ATTR_JAVA_MAP.get(dataType);
@@ -125,23 +143,39 @@ public class CodeGenerator {
         return WordUtils.capitalizeFully(name, new char[]{'_'}).replace("_", "");
     }
 
-    private static void writeFile(String pathName, String context){
-        File file1 = new File(pathName);
-        if (!file1.getParentFile().exists()) {
-            file1.getParentFile().mkdirs();
+    private static void writeFile(String pathName, String context) {
+        File file = new File(pathName);
+        if (!file.getParentFile().exists()) {
+            file.getParentFile().mkdirs();
         }
         FileWriter fileWriter;
-        try{
-            fileWriter = new FileWriter(file1);
+        try {
+            fileWriter = new FileWriter(file);
             //向指定文件中写入内容
-            BufferedWriter bufferedWriter=new BufferedWriter(fileWriter);
+            BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
             bufferedWriter.write(context.toString());
             bufferedWriter.close();
-            System.out.println("生成"+pathName+"成功");
-        }catch(IOException e){
-            System.out.println("生成"+pathName+"失败");
+            System.out.println("生成" + pathName + "成功");
+        } catch (IOException e) {
+            System.out.println("生成" + pathName + "失败");
             e.printStackTrace();
         }
     }
+
+    private static void deleteFile(String... fileNames) {
+        for (String fileName : fileNames) {
+            File file = new File(fileName);
+            if (file.exists() && file.isFile()) {
+                if (file.delete()) {
+                    System.out.println("删除单个文件" + fileName + "成功！");
+                } else {
+                    System.out.println("删除单个文件" + fileName + "失败！");
+                }
+            } else {
+                System.out.println("删除文件失败:" + fileName + "不存在！");
+            }
+        }
+    }
+
 
 }

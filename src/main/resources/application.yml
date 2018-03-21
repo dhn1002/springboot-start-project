@@ -1,15 +1,30 @@
+# Tomcat
+server:
+  tomcat:
+      max-threads: 10
+      min-spare-threads: 10
+  port: 8080
+# servlet:
+#    context-path: /demo
+
+# mysql
 spring:
-    datasource:
-        type: com.alibaba.druid.pool.DruidDataSource
-        driverClassName: com.mysql.jdbc.Driver
-        url: jdbc:mysql://localhost:3306/monitor-interface?useUnicode=true&characterEncoding=UTF-8
-        username: root
-        password: 123456
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    driverClassName: com.mysql.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/demo?useUnicode=true&characterEncoding=UTF-8
+    username: root
+    password: 123456
+  jackson:
+    time-zone: GMT+8
+    date-format: yyyy-MM-dd HH:mm:ss
+  resources:
+    static-locations: classpath:/static/,classpath:/templates/
 
 mybatis:
-    mapperLocations: classpath:mapper/**/*.xml
-    configuration:
-            map-underscore-to-camel-case: true
+  mapperLocations: classpath:mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
 
 logging:
   level:
